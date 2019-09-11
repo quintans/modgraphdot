@@ -25,11 +25,13 @@ import (
 )
 
 func usage() {
-	fmt.Fprintf(os.Stderr, `Usage: go mod graph | modgraphdot [stop string] | dot -Tpng -o graph.png
+	fmt.Fprintf(os.Stderr, `Usage: go mod graph | modgraphdot [-p] [stop string] | dot -Tpng -o graph.png
 
 For each module, the node representing the greatest version (i.e., the
 version chosen by Go's minimal version selection algorithm) is colored green.
 Other nodes, which aren't in the final build list, are colored grey.
+If -p is set, only the the green ones will apper.
+If [stop string] is defined 
 `)
 	os.Exit(2)
 }
