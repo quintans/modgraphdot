@@ -117,9 +117,12 @@ func TestMVSPicking(t *testing.T) {
 func TestTrim(t *testing.T) {
 	out := &bytes.Buffer{}
 	in := bytes.NewBuffer([]byte(`
-test.com/A test.com/B@v1.2.3
-test.com/B@v1.0.0 test.com/C@v4.5.6
-test.com/B@v1.2.3 test.com/X@v0.0.0
+test.com/A test.com/EOF@v0.0.0
+test.com/A test.com/C1@v0.0.0
+test.com/A test.com/C2@v0.0.0
+test.com/C2@v0.0.0 test.com/C1@v0.0.0
+test.com/C1@v0.0.0 test.com/C2@v0.0.0
+test.com/C1@v0.0.0 test.com/X@v0.0.0
 `))
 	if err := modgraphdot(in, out, "test.com/X"); err != nil {
 		t.Fatal(err)
@@ -127,9 +130,12 @@ test.com/B@v1.2.3 test.com/X@v0.0.0
 
 	gotGraph := string(out.Bytes())
 	wantGraph := `digraph gomodgraph {
-	"test.com/A" -> "test.com/B@v1.2.3"
-	"test.com/B@v1.2.3" -> "test.com/X@v0.0.0"
-	"test.com/B@v1.2.3" [style = filled, fillcolor = green]
+	"test.com/A" -> "test.com/C1@v0.0.0"
+	"test.com/C1@v0.0.0" -> "test.com/X@v0.0.0"
+	"test.com/A" -> "test.com/C2@v0.0.0"
+	"test.com/C2@v0.0.0" -> "test.com/C1@v0.0.0"
+	"test.com/C1@v0.0.0" [style = filled, fillcolor = green]
+	"test.com/C2@v0.0.0" [style = filled, fillcolor = green]
 	"test.com/X@v0.0.0" [style = filled, fillcolor = green]
 }
 `

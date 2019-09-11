@@ -89,44 +89,29 @@ func newNode(name string) *node {
 	return &node{name, make([]*node, 0)}
 }
 
-func (n *node) dropIfNotContains(seen map[string]bool, stopAt string) bool {
+func (n *node) toEdges(seen map[string]bool, edges []edge, stopAt string) ([]edge, bool) {
 	if seen[n.name] {
-		return false
+		return edges, false
 	}
-	seen[n.name] = true
 
 	if strings.Contains(n.name, stopAt) {
-		n.nodes = make([]*node, 0)
-		return true
+		return edges, true
 	}
 
-	contains := false
-	for k := len(n.nodes) - 1; k >= 0; k-- {
-		v := n.nodes[k]
-		if ok := v.dropIfNotContains(seen, stopAt); ok {
-			contains = true
-			continue
-		}
-
-		n.nodes[k] = nil
-		n.nodes = append(n.nodes[:k], n.nodes[k+1:]...)
-	}
-
-	return contains
-}
-
-func (n *node) toEdges(seen map[string]bool) []edge {
-	edges := make([]edge, 0)
-	if seen[n.name] {
-		return edges
-	}
 	seen[n.name] = true
-
+	found := false
 	for _, v := range n.nodes {
-		edges = append(edges, edge{from: n.name, to: v.name})
-		edges = append(edges, v.toEdges(seen)...)
+		edges = append(edges, edge{from: n.name, to: v.name}) // Push
+		if children, ok := v.toEdges(seen, edges, stopAt); ok {
+			edges = children
+			found = true
+		} else {
+			edges = edges[:len(edges)-1] // Pop
+		}
 	}
-	return edges
+	delete(seen, n.name)
+
+	return edges, found
 }
 
 func (g *graph) trim(stopAt string) {
@@ -139,29 +124,38 @@ func (g *graph) trim(stopAt string) {
 	for _, v := range g.edges {
 		addToNodes(nodes, v.to)
 	}
-	// from -> to
+	// relate from -> to
 	for _, v := range g.edges {
 		from := nodes[v.from]
 		to := nodes[v.to]
 		from.nodes = append(from.nodes, to)
 	}
-	// filter out non root
-	for k := range nodes {
-		if strings.IndexByte(k, '@') > -1 {
-			delete(nodes, k)
+	// find the root node (there will be only one)
+	var root *node
+	for k, v := range nodes {
+		if strings.IndexByte(k, '@') == -1 {
+			root = v
+			break
 		}
 	}
 
 	seen := map[string]bool{}
-	for _, n := range nodes {
-		n.dropIfNotContains(seen, stopAt)
+	edges := make([]edge, 0)
+	edges, _ = root.toEdges(seen, edges, stopAt)
+
+	// remove edge duplicate
+	for i := len(edges) - 1; i >= 0; i-- {
+		e := edges[i]
+		// check equality
+		for k, v := range edges {
+			if k != i && e.from == v.from && e.to == v.to {
+				// delete
+				edges = append(edges[:i], edges[i+1:]...)
+				break
+			}
+		}
 	}
 
-	seen = map[string]bool{}
-	edges := make([]edge, 0)
-	for _, n := range nodes {
-		edges = append(edges, n.toEdges(seen)...)
-	}
 	g.edges = edges
 
 	currentEdges := make(map[string]bool)

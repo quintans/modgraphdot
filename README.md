@@ -9,8 +9,6 @@ for use with Graphviz visualization and analysis tools like dot, dotty, and sccm
 This tools allows us to create a tree of dependencies that stop at the dependency that we are looking for,
 resulting in a shorter tree.
 
-> *Warning:** due to cyclic dedependencies, the tree might not present ALL the branches
-
 Usage:
 
 `go mod graph | modgraphdot > graph.dot`
@@ -20,6 +18,8 @@ Usage:
 Example:
 
 `go mod graph | modgraphdot "go-grpc@" | dot -Tsvg -o graph.svg`
+
+will show ALL the paths from the main module to all module whose name contains "go-grps@" in a svg file.
 
 Install:
 
