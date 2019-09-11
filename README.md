@@ -6,6 +6,11 @@ Modgraphdot converts “go mod graph” output into Graphviz's DOT language
 Modgraphdot converts “go mod graph” output into Graphviz's DOT language,
 for use with Graphviz visualization and analysis tools like dot, dotty, and sccmap.
 
+This tools allows us to create a tree of dependencies that stop at the dependency that we are looking for,
+resulting in a shorter tree.
+
+> *Warning:** due to cyclic dedependencies, the tree might not present ALL the branches
+
 Usage:
 
 `go mod graph | modgraphdot > graph.dot`

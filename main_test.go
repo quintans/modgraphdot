@@ -17,7 +17,7 @@ func TestRun(t *testing.T) {
 test.com/A@v1.0.0 test.com/B@v1.2.3
 test.com/B@v1.0.0 test.com/C@v4.5.6
 `))
-	if err := modgraphviz(in, out, ""); err != nil {
+	if err := modgraphdot(in, out, ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -121,7 +121,7 @@ test.com/A test.com/B@v1.2.3
 test.com/B@v1.0.0 test.com/C@v4.5.6
 test.com/B@v1.2.3 test.com/X@v0.0.0
 `))
-	if err := modgraphviz(in, out, "test.com/X"); err != nil {
+	if err := modgraphdot(in, out, "test.com/X"); err != nil {
 		t.Fatal(err)
 	}
 
