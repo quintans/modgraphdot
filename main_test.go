@@ -17,7 +17,7 @@ func TestRun(t *testing.T) {
 test.com/A@v1.0.0 test.com/B@v1.2.3
 test.com/B@v1.0.0 test.com/C@v4.5.6
 `))
-	if err := modgraphdot(in, out, ""); err != nil {
+	if err := modgraphdot(in, out, false, ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -117,26 +117,63 @@ func TestMVSPicking(t *testing.T) {
 func TestTrim(t *testing.T) {
 	out := &bytes.Buffer{}
 	in := bytes.NewBuffer([]byte(`
-test.com/A test.com/EOF@v0.0.0
+test.com/A test.com/EOF@v1.0.0
 test.com/A test.com/C1@v0.0.0
-test.com/A test.com/C2@v0.0.0
-test.com/C2@v0.0.0 test.com/C1@v0.0.0
-test.com/C1@v0.0.0 test.com/C2@v0.0.0
-test.com/C1@v0.0.0 test.com/X@v0.0.0
+test.com/A test.com/C1@v1.0.0
+test.com/A test.com/C2@v1.0.0
+test.com/C1@v0.0.0 test.com/X@v1.0.0
+test.com/C2@v1.0.0 test.com/C1@v1.0.0
+test.com/C1@v1.0.0 test.com/C2@v1.0.0
+test.com/C1@v1.0.0 test.com/X@v1.0.0
 `))
-	if err := modgraphdot(in, out, "test.com/X"); err != nil {
+	if err := modgraphdot(in, out, false, "test.com/X"); err != nil {
 		t.Fatal(err)
 	}
 
 	gotGraph := string(out.Bytes())
 	wantGraph := `digraph gomodgraph {
 	"test.com/A" -> "test.com/C1@v0.0.0"
-	"test.com/C1@v0.0.0" -> "test.com/X@v0.0.0"
-	"test.com/A" -> "test.com/C2@v0.0.0"
-	"test.com/C2@v0.0.0" -> "test.com/C1@v0.0.0"
-	"test.com/C1@v0.0.0" [style = filled, fillcolor = green]
-	"test.com/C2@v0.0.0" [style = filled, fillcolor = green]
-	"test.com/X@v0.0.0" [style = filled, fillcolor = green]
+	"test.com/C1@v0.0.0" -> "test.com/X@v1.0.0"
+	"test.com/A" -> "test.com/C1@v1.0.0"
+	"test.com/C1@v1.0.0" -> "test.com/X@v1.0.0"
+	"test.com/A" -> "test.com/C2@v1.0.0"
+	"test.com/C2@v1.0.0" -> "test.com/C1@v1.0.0"
+	"test.com/C1@v1.0.0" [style = filled, fillcolor = green]
+	"test.com/C2@v1.0.0" [style = filled, fillcolor = green]
+	"test.com/X@v1.0.0" [style = filled, fillcolor = green]
+	"test.com/C1@v0.0.0" [style = filled, fillcolor = gray]
+}
+`
+	if gotGraph != wantGraph {
+		t.Fatalf("\ngot: %s\nwant: %s", gotGraph, wantGraph)
+	}
+}
+
+func TestTrimPicked(t *testing.T) {
+	out := &bytes.Buffer{}
+	in := bytes.NewBuffer([]byte(`
+test.com/A test.com/EOF@v1.0.0
+test.com/A test.com/C1@v0.0.0
+test.com/A test.com/C1@v1.0.0
+test.com/A test.com/C2@v1.0.0
+test.com/C1@v0.0.0 test.com/X@v1.0.0
+test.com/C2@v1.0.0 test.com/C1@v1.0.0
+test.com/C1@v1.0.0 test.com/C2@v1.0.0
+test.com/C1@v1.0.0 test.com/X@v1.0.0
+`))
+	if err := modgraphdot(in, out, true, "test.com/X"); err != nil {
+		t.Fatal(err)
+	}
+
+	gotGraph := string(out.Bytes())
+	wantGraph := `digraph gomodgraph {
+	"test.com/A" -> "test.com/C1@v1.0.0"
+	"test.com/C1@v1.0.0" -> "test.com/X@v1.0.0"
+	"test.com/A" -> "test.com/C2@v1.0.0"
+	"test.com/C2@v1.0.0" -> "test.com/C1@v1.0.0"
+	"test.com/C1@v1.0.0" [style = filled, fillcolor = green]
+	"test.com/C2@v1.0.0" [style = filled, fillcolor = green]
+	"test.com/X@v1.0.0" [style = filled, fillcolor = green]
 }
 `
 	if gotGraph != wantGraph {

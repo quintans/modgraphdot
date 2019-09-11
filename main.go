@@ -39,6 +39,7 @@ func main() {
 	log.SetPrefix("modgraphdot: ")
 
 	flag.Usage = usage
+	var onlyPicked = flag.Bool("p", false, "if set, only the picked versions are displayed")
 	flag.Parse()
 	if flag.NArg() > 1 {
 		usage()
@@ -46,18 +47,18 @@ func main() {
 
 	stopAt := flag.Arg(0)
 
-	if err := modgraphdot(os.Stdin, os.Stdout, stopAt); err != nil {
+	if err := modgraphdot(os.Stdin, os.Stdout, *onlyPicked, stopAt); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func modgraphdot(in io.Reader, out io.Writer, stopAt string) error {
+func modgraphdot(in io.Reader, out io.Writer, onlyPicked bool, stopAt string) error {
 	graph, err := convert(in)
 	if err != nil {
 		return err
 	}
 	if stopAt != "" {
-		graph.trim(stopAt)
+		graph.trim(onlyPicked, stopAt)
 	}
 
 	fmt.Fprintf(out, "digraph gomodgraph {\n")
@@ -80,49 +81,21 @@ type graph struct {
 	mvsUnpicked []string
 }
 
-type node struct {
-	name  string
-	nodes []*node
-}
-
-func newNode(name string) *node {
-	return &node{name, make([]*node, 0)}
-}
-
-func (n *node) toEdges(seen map[string]bool, edges []edge, stopAt string) ([]edge, bool) {
-	if seen[n.name] {
-		return edges, false
-	}
-
-	if strings.Contains(n.name, stopAt) {
-		return edges, true
-	}
-
-	seen[n.name] = true
-	found := false
-	for _, v := range n.nodes {
-		edges = append(edges, edge{from: n.name, to: v.name}) // Push
-		if children, ok := v.toEdges(seen, edges, stopAt); ok {
-			edges = children
-			found = true
-		} else {
-			edges = edges[:len(edges)-1] // Pop
+func (g *graph) trim(onlyPicked bool, stopAt string) {
+	mvsPicked := map[string]bool{}
+	if onlyPicked {
+		for _, v := range g.mvsPicked {
+			mvsPicked[v] = true
 		}
 	}
-	delete(seen, n.name)
-
-	return edges, found
-}
-
-func (g *graph) trim(stopAt string) {
 	nodes := make(map[string]*node)
 	// from
 	for _, v := range g.edges {
-		addToNodes(nodes, v.from)
+		addToNodes(nodes, v.from, mvsPicked)
 	}
 	// to
 	for _, v := range g.edges {
-		addToNodes(nodes, v.to)
+		addToNodes(nodes, v.to, mvsPicked)
 	}
 	// relate from -> to
 	for _, v := range g.edges {
@@ -135,7 +108,7 @@ func (g *graph) trim(stopAt string) {
 
 	seen := map[string]bool{}
 	edges := make([]edge, 0)
-	edges, _ = root.toEdges(seen, edges, stopAt)
+	edges, _ = root.toEdges(seen, edges, onlyPicked, stopAt)
 	g.edges = removeDuplicateEdges(edges)
 
 	currentEdges := map[string]bool{}
@@ -148,11 +121,51 @@ func (g *graph) trim(stopAt string) {
 	g.mvsUnpicked = filterOut(currentEdges, g.mvsUnpicked)
 }
 
+type node struct {
+	name   string
+	nodes  []*node
+	picked bool
+}
+
+func newNode(name string, picked bool) *node {
+	return &node{name, make([]*node, 0), picked}
+}
+
+func (n *node) toEdges(seen map[string]bool, edges []edge, onlyPicked bool, stopAt string) ([]edge, bool) {
+	if seen[n.name] {
+		return edges, false
+	}
+
+	if strings.Contains(n.name, stopAt) {
+		return edges, !onlyPicked || n.picked
+	}
+
+	seen[n.name] = true
+	found := false
+	for _, v := range n.nodes {
+		if onlyPicked && !n.picked {
+			continue
+		}
+
+		edges = append(edges, edge{from: n.name, to: v.name}) // Push
+		if children, ok := v.toEdges(seen, edges, onlyPicked, stopAt); ok {
+			edges = children
+			found = true
+		} else {
+			edges = edges[:len(edges)-1] // Pop
+		}
+	}
+	delete(seen, n.name)
+
+	return edges, found
+}
+
 func findRoot(nodes map[string]*node) *node {
 	var root *node
 	for k, v := range nodes {
 		if strings.IndexByte(k, '@') == -1 {
 			root = v
+			root.picked = true
 			return root
 		}
 	}
@@ -185,9 +198,10 @@ func filterOut(existing map[string]bool, toFilter []string) []string {
 }
 
 // FIXME: side effect
-func addToNodes(nodes map[string]*node, name string) {
+func addToNodes(nodes map[string]*node, name string, msvPicked map[string]bool) {
 	if _, ok := nodes[name]; !ok {
-		nodes[name] = newNode(name)
+		picked := msvPicked[name]
+		nodes[name] = newNode(name, picked)
 	}
 }
 
