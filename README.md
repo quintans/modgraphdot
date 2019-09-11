@@ -26,6 +26,14 @@ Example:
 
 will show ALL the paths from the main module to all module whose name contains "go-grps@" in a svg file.
 
+`go mod graph | modgraphdot | dot -Tsvg -o graph.svg`
+
+will show the full graph
+
+`go mod graph | modgraphdot | dot -Tsvg -o graph.svg`
+
+Will show only the paths use in the build
+
 Install:
 
 `go get github.com/quintans/modgraphdot`

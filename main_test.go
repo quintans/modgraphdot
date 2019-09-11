@@ -180,3 +180,38 @@ test.com/C1@v1.0.0 test.com/X@v1.0.0
 		t.Fatalf("\ngot: %s\nwant: %s", gotGraph, wantGraph)
 	}
 }
+
+func TestPicked(t *testing.T) {
+	out := &bytes.Buffer{}
+	in := bytes.NewBuffer([]byte(`
+test.com/A test.com/EOF@v1.0.0
+test.com/A test.com/C1@v0.0.0
+test.com/A test.com/C1@v1.0.0
+test.com/A test.com/C2@v1.0.0
+test.com/C1@v0.0.0 test.com/X@v1.0.0
+test.com/C2@v1.0.0 test.com/C1@v1.0.0
+test.com/C1@v1.0.0 test.com/C2@v1.0.0
+test.com/C1@v1.0.0 test.com/X@v1.0.0
+`))
+	if err := modgraphdot(in, out, true, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	gotGraph := string(out.Bytes())
+	wantGraph := `digraph gomodgraph {
+	"test.com/A" -> "test.com/EOF@v1.0.0"
+	"test.com/A" -> "test.com/C1@v1.0.0"
+	"test.com/C1@v1.0.0" -> "test.com/C2@v1.0.0"
+	"test.com/C2@v1.0.0" -> "test.com/C1@v1.0.0"
+	"test.com/C1@v1.0.0" -> "test.com/X@v1.0.0"
+	"test.com/A" -> "test.com/C2@v1.0.0"
+	"test.com/C1@v1.0.0" [style = filled, fillcolor = green]
+	"test.com/C2@v1.0.0" [style = filled, fillcolor = green]
+	"test.com/EOF@v1.0.0" [style = filled, fillcolor = green]
+	"test.com/X@v1.0.0" [style = filled, fillcolor = green]
+}
+`
+	if gotGraph != wantGraph {
+		t.Fatalf("\ngot: %s\nwant: %s", gotGraph, wantGraph)
+	}
+}

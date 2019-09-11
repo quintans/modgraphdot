@@ -59,7 +59,7 @@ func modgraphdot(in io.Reader, out io.Writer, onlyPicked bool, stopAt string) er
 	if err != nil {
 		return err
 	}
-	if stopAt != "" {
+	if onlyPicked || stopAt != "" {
 		graph.trim(onlyPicked, stopAt)
 	}
 
@@ -120,7 +120,11 @@ func (g *graph) trim(onlyPicked bool, stopAt string) {
 	}
 
 	g.mvsPicked = filterOut(currentEdges, g.mvsPicked)
-	g.mvsUnpicked = filterOut(currentEdges, g.mvsUnpicked)
+	if onlyPicked {
+		g.mvsUnpicked = make([]string, 0)
+	} else {
+		g.mvsUnpicked = filterOut(currentEdges, g.mvsUnpicked)
+	}
 }
 
 type node struct {
@@ -133,18 +137,20 @@ func newNode(name string, picked bool) *node {
 	return &node{name, make([]*node, 0), picked}
 }
 
+// toEdges converts this node to a stack os edges.
 func (n *node) toEdges(seen map[string]bool, edges []edge, onlyPicked bool, stopAt string) ([]edge, bool) {
 	if seen[n.name] {
-		return edges, false
+		return edges, stopAt == ""
 	}
 
-	if strings.Contains(n.name, stopAt) {
-		return edges, !onlyPicked || n.picked
+	if stopAt != "" && strings.Contains(n.name, stopAt) {
+		return edges, true
 	}
 
 	seen[n.name] = true
 	found := false
 	for _, v := range n.nodes {
+		// check if it is valid to call, considering onlyPicked
 		if onlyPicked && !v.picked {
 			continue
 		}
@@ -159,7 +165,7 @@ func (n *node) toEdges(seen map[string]bool, edges []edge, onlyPicked bool, stop
 	}
 	delete(seen, n.name)
 
-	return edges, found
+	return edges, found || !onlyPicked || n.picked
 }
 
 func findRoot(nodes map[string]*node) *node {
