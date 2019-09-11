@@ -130,20 +130,36 @@ func (g *graph) trim(stopAt string) {
 		to := nodes[v.to]
 		from.nodes = append(from.nodes, to)
 	}
-	// find the root node (there will be only one)
-	var root *node
-	for k, v := range nodes {
-		if strings.IndexByte(k, '@') == -1 {
-			root = v
-			break
-		}
-	}
+
+	root := findRoot(nodes)
 
 	seen := map[string]bool{}
 	edges := make([]edge, 0)
 	edges, _ = root.toEdges(seen, edges, stopAt)
+	g.edges = removeDuplicateEdges(edges)
 
-	// remove edge duplicate
+	currentEdges := map[string]bool{}
+	for _, v := range edges {
+		currentEdges[v.from] = true
+		currentEdges[v.to] = true
+	}
+
+	g.mvsPicked = filterOut(currentEdges, g.mvsPicked)
+	g.mvsUnpicked = filterOut(currentEdges, g.mvsUnpicked)
+}
+
+func findRoot(nodes map[string]*node) *node {
+	var root *node
+	for k, v := range nodes {
+		if strings.IndexByte(k, '@') == -1 {
+			root = v
+			return root
+		}
+	}
+	panic("There is no root node!!!")
+}
+
+func removeDuplicateEdges(edges []edge) []edge {
 	for i := len(edges) - 1; i >= 0; i-- {
 		e := edges[i]
 		// check equality
@@ -155,31 +171,17 @@ func (g *graph) trim(stopAt string) {
 			}
 		}
 	}
+	return edges
+}
 
-	g.edges = edges
-
-	currentEdges := make(map[string]bool)
-	for _, v := range edges {
-		currentEdges[v.from] = true
-		currentEdges[v.to] = true
-	}
-	// filter picked
+func filterOut(existing map[string]bool, toFilter []string) []string {
 	filtered := make([]string, 0)
-	for _, v := range g.mvsPicked {
-		if currentEdges[v] {
+	for _, v := range toFilter {
+		if existing[v] {
 			filtered = append(filtered, v)
 		}
 	}
-	g.mvsPicked = filtered
-
-	// filter unpicked
-	filtered = make([]string, 0)
-	for _, v := range g.mvsUnpicked {
-		if currentEdges[v] {
-			filtered = append(filtered, v)
-		}
-	}
-	g.mvsUnpicked = filtered
+	return filtered
 }
 
 // FIXME: side effect
