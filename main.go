@@ -145,7 +145,7 @@ func (n *node) toEdges(seen map[string]bool, edges []edge, onlyPicked bool, stop
 	seen[n.name] = true
 	found := false
 	for _, v := range n.nodes {
-		if onlyPicked && !n.picked {
+		if onlyPicked && !v.picked {
 			continue
 		}
 
