@@ -165,7 +165,8 @@ func (n *node) toEdges(seen map[string]bool, edges []edge, onlyPicked bool, stop
 	}
 	delete(seen, n.name)
 
-	return edges, found || !onlyPicked || n.picked
+	pick := (!onlyPicked || n.picked) && stopAt == ""
+	return edges, found || pick
 }
 
 func findRoot(nodes map[string]*node) *node {
