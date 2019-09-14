@@ -14,13 +14,13 @@ version chosen by Go's minimal version selection algorithm) is colored green.
 Other nodes, which aren't in the final build list, are colored grey.
 If `-p` is set, only the the green ones will apper.
 
-Usage:
+## Usage
 
 `go mod graph | modgraphdot > graph.dot`
 
 `go mod graph | modgraphdot [-p] [stop string] | dot -Tpng -o graph.png`
 
-Example:
+## Example
 
 `go mod graph | modgraphdot "go-grpc@" | dot -Tsvg -o graph.svg`
 
@@ -34,6 +34,12 @@ will show the full graph
 
 Will show only the paths use in the build
 
-Install:
+## Installation
+### Install graphviz
+#### Ubuntu
+`sudo apt install graphviz`
+#### Mac OS
+`brew install graphviz`
 
+### Install tool
 `go get -u github.com/quintans/modgraphdot`
