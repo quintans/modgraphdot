@@ -36,4 +36,4 @@ Will show only the paths use in the build
 
 Install:
 
-`go get github.com/quintans/modgraphdot`
+`go get -u github.com/quintans/modgraphdot`
